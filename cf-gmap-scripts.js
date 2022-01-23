@@ -5,7 +5,7 @@ const clust = "m-dot.svg";
 var lngList = ["de", "en", "it"]; // ( !!! ) da aggiornare quando si aggiungono lingue ( !!! )
 const center = { lat: 50.5, lng: 10.4 };
 const centerBerlin = { lat: 52.51553724557109, lng: 13.415113594397699};
-
+var markers = [];
 var myGeoJson;
 
 /* Map Options */
@@ -64,7 +64,6 @@ setSelect(language);
 /* sistema la lingua sul select dopo che è stato creato il controllo */
 
 /* Costruzione dei Markers*/  
-var markers = [];
 for (let i = 0; i < myGeoJson.features.length; i++) { // DA CHIUDERE
     var loc = {};
     loc.lat = parseFloat(myGeoJson.features[i].properties.lat);
@@ -104,18 +103,20 @@ for (let i = 0; i < myGeoJson.features.length; i++) { // DA CHIUDERE
 
     // usare click invece di mouseover.... ?
     marker.addListener("click", () => {
+      hideAllInfoWindows(map);
       infowindow.open({
         anchor: marker,
         //map, // serve?
         shouldFocus: false,
-      });
+      });     
     });
 
     // Se lo attivo ammazza il click di open()
-    /* const mapDiv = document.getElementById("mapB");
-    google.maps.event.addDomListener(mapDiv, "click", () => {
-         infowindow.close();
-       }); */
+    const mapDiv = document.getElementById("mapB");
+    google.maps.event.addDomListener(mapDiv, "click", (e) => {
+          if(infowindow)
+            infowindow.close();
+       });
 
     markers.push(marker);
   } // fine ciclo FOR
@@ -355,3 +356,12 @@ function startMap() {
     console.log("Questo è langlang: " + langlang);
   });
 }
+
+
+function hideAllInfoWindows(map) {
+   markers.forEach(function(marker) {
+     marker.infowindow.close(map, marker);
+  }); 
+}
+
+
