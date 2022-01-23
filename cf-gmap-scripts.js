@@ -357,7 +357,7 @@ function startMap() {
   });
 }
 
-
+// chiude tutte le info window
 function hideAllInfoWindows(map) {
    markers.forEach(function(marker) {
      marker.infowindow.close(map, marker);
