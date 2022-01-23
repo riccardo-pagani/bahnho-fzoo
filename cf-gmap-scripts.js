@@ -1,16 +1,21 @@
 let map;
 var markerSet = '/wp-content/themes/lovecraft-child/assets/images/markers/';
 const icon = "cf-asterisk.svg";
+const clust = "m-dot.svg";
 var lngList = ["de", "en", "it"]; // ( !!! ) da aggiornare quando si aggiungono lingue ( !!! )
-const center = { lat: 51, lng: 10.4 }; // centra la mappa
+const center = { lat: 50.5, lng: 10.4 };
+const centerBerlin = { lat: 52.51553724557109, lng: 13.415113594397699};
+
+var myGeoJson;
 
 /* Map Options */
 var mapOptions = {
   //mapId: "13fd6f0153a59edc", // Questa è la prima
-  //mapId: "5c073af6c502f307", // Questo è il Gray
-  mapId: "992e5d5b15b729ab", // Questo è il terzo
-  zoom: 6.2,
-  center: center,
+  mapId: "5c073af6c502f307", // Questo è il Gray
+  //mapId: "992e5d5b15b729ab", // Questo è il terzo
+  //zoom: 6,
+  zoom: 10.2,
+  center: centerBerlin,
   mapTypeId: 'roadmap',
   zoomControl: true,
   mapTypeControl: false,
@@ -19,10 +24,12 @@ var mapOptions = {
   rotateControl: false,
   fullscreenControl: true,
   gestureHandling: "cooperative",
+  minZoom: 6,
   restriction: {
     latLngBounds: {
-      north: 59,
-      south: 47,
+      //north: 56,
+      north: 58,
+      south: 46.5,
       east: 15.2,
       west: 5.5,
     },
@@ -32,6 +39,9 @@ var mapOptions = {
 /* Mappa di tutta la Germania */
 function initDeutschland() {
   var map = new google.maps.Map(document.getElementById("mapB"), mapOptions );
+  // REST request for Posts
+  var myURL = urlMakerMap(lngList);
+  myGeoJson = mapAjaxCall(myURL);
 
 /* +++++++++++++++++++++++++++++++++++++++++++++++++ */
 // Aggiunge un controllo custom alla mappa (scelta delle lingue)
@@ -48,107 +58,35 @@ var control = function() {function o(o) {this.add=function(T){var t=document.cre
   control.topLeft.add(html);
 /* +++++++++++++++++++++++++++++++++++++++++++++++++ */
 
-/* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx */
-/* Aggiunge il Muro di berlino */
-/* TRACCIATO OK */
-  const triangleCoords = [
-    { lat: 52.50305159187053, lng: 13.52694588896717 },
-    { lat: 53.84791896260856, lng: 9.942807449889486 },
-    { lat: 48.027485052051425, lng: 7.845028606243967 },
-    // { lat: -27.467, lng: 153.027 }, test
-  ];
-  // Construct the polygon.
-  const wall = new google.maps.Polygon({
-    paths: triangleCoords,
-    geodesic: true, // in Polyline ???
-    strokeColor: "#C04300",
-    strokeOpacity: 0.7,
-    strokeWeight: 4,
-    fillColor: "#00FF00",
-    fillOpacity: 0,
-  });
+/* sistema la lingua sul select dopo che è stato creato il controllo (NON VA) */
+var language = localStorage.langID;
+setSelect(language);
+/* sistema la lingua sul select dopo che è stato creato il controllo */
 
-  wall.setMap(map);
-/* TRACCIATO OK */
-/* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx */
-
-  // REST request for Posts
-  var myURL = urlMakerMap(lngList);
-  var myGeoJson = mapAjaxCall(myURL);
-  console.log("Questo è myGeoJson in initDeutschland: " + myGeoJson);
-  console.log("Questo è myGeoJson.type: " + myGeoJson.type);
-  console.log("Questo è myGeoJson.features: " + myGeoJson.features);
-  console.log("Questo è myGeoJson.features[1]: " + myGeoJson.features[1]);
-  console.log("Questo è myGeoJson.features[1].properties.lat: " + myGeoJson.features[1].properties.lat);
-  console.log("Questo è myGeoJson.features.length: " + myGeoJson.features.length);
-
-  /* ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| */
-/* Creaiamo subito i Markes e i Clusters */
-/* PROBLEMA: ho dei marker duplicati in aggiunta a quelli creati dal DataSet */
-var locations = [];
-for (let i = 0; i < myGeoJson.features.length; i++) {
-var loc = {};
-loc.lat = parseFloat(myGeoJson.features[i].properties.lat);
-loc.lng = parseFloat(myGeoJson.features[i].properties.lng);
-locations.push(loc);
-}
-const markers = locations.map((position, i) => {
-    //const label = labels[i % labels.length];
+/* Costruzione dei Markers*/  
+var markers = [];
+for (let i = 0; i < myGeoJson.features.length; i++) { // DA CHIUDERE
+    var loc = {};
+    loc.lat = parseFloat(myGeoJson.features[i].properties.lat);
+    loc.lng = parseFloat(myGeoJson.features[i].properties.lng);
     const marker = new google.maps.Marker({
-      position,
-      //label,
-    });
-    return marker;
-  });
-
-/* Generazione Clusters */
-var mcOptions = {
-          styles:[{
-                color: "Cyan", // non va......
-          }]
-    };
-    //new MarkerClusterer({ markers, map });
-    /* da GitHub: When adding via unpkg, the MarkerClusterer can be accessed at markerClusterer.MarkerClusterer. */
-      new markerClusterer.MarkerClusterer({ map, markers, mcOptions });
-  /* ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| */
-
-  // Load the GeoJSON onto the map.
-  //map.data.loadGeoJson('../wp-content/themes/lovecraft-child/assets/js/postsBis.json', {idPropertyName: 'postid'}); // da locale
-  map.data.addGeoJson(myGeoJson, {idPropertyName: 'postid'}); // da remoto
-
-  // Define the custom marker icon.
-  map.data.setStyle((feature) => {
-    return {
-      icon: {
+      position: loc,
+      icon: { // custom icon
         url: markerSet + icon,
       },
-    };
-  });
+      //map, // serve? (NO)
+    });
 
-  const apiKey = 'AIzaSyBg9GxYNuuQJD9TUlYlng1HiglInAM4Ki4'; // serve???
-  
-  /* Creazione delle infoWindows dal dataSet ( Tooltips ) */
-  const infoWindow = new google.maps.InfoWindow();
-  // Show the infoWindow for a quote when its marker is clicked.
-  map.data.addListener('click', (event) => {
-    const url = event.feature.getProperty('url');
-    const title = event.feature.getProperty('title');
-    const lat = event.feature.getProperty('lat');
-    const lng = event.feature.getProperty('lng');
-    const position = event.feature.getGeometry().get();
-    var language = setLanguageIDmap(); // *********************************************************************
-    setSelect(language);
-    console.log("Questa è language 2: " + language);
-    var keyword = event.feature.getProperty(language + "_cf_keyword");
-    const text = event.feature.getProperty(language + "_cf_text");
-    //console.log("Questa è language + keyword: " + language + "_cf_keyword");
-    console.log("Questa è keyword: " + keyword);
+    /* Creare i contenuti del tooltip */
+    //const url = JSON.stringify(myGeoJson.features[i].properties.url); // sbagliato
+    const url = myGeoJson.features[i].properties.url; // giusto
+    var cont = contentOK(language, myGeoJson.features[i]);
+    const keyword = cont[0];
+    const text = cont[1];
     var chunks = cutTextMap(text, keyword);
     var text0 = chunks[0];
     var text1 = chunks[1];
-
-    // per link a Google Maps usare url fatti così: http://www.google.com/maps/place/lat,lng
-    const content = `
+    const contentString = `
       <div class="quote-map">
         <spam class='text0'>${text0}</spam><spam class='keyword'><strong>${keyword}</strong></spam><spam class='text1'>${text1}</spam>
       </div>
@@ -156,19 +94,110 @@ var mcOptions = {
         </br><p class="footnoteM">Go to the <a class="fn-url" href="${url}" target="_blank">footnote</a></p>
       </div>
     `;
+    /* Fine dei contenuti del tooltip */
 
-    infoWindow.setContent(content);
-    infoWindow.setPosition(position);
-    infoWindow.setOptions({pixelOffset: new google.maps.Size(0, -25)});
-    infoWindow.setOptions({maxWidth: 350});
-    infoWindow.open(map);
-
-    map.addListener('click', ()=>{
-      infoWindow.close();
+    /* Costruzione delle infoWindow */
+    const infowindow = new google.maps.InfoWindow({
+      content: contentString,
+      maxWidth: 350
     });
-  }); // FINE addListener()
-  
+
+    // usare click invece di mouseover.... ?
+    marker.addListener("click", () => {
+      infowindow.open({
+        anchor: marker,
+        //map, // serve?
+        shouldFocus: false,
+      });
+    });
+
+    // Se lo attivo ammazza il click di open()
+    /* const mapDiv = document.getElementById("mapB");
+    google.maps.event.addDomListener(mapDiv, "click", () => {
+         infowindow.close();
+       }); */
+
+    markers.push(marker);
+  } // fine ciclo FOR
+
+
+  /* ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| */
+/* Generazione Clusters */
+var mcOptions = {
+          styles:[{
+            //url: markerSet + clust,
+          //url: "https://googlemaps.github.io/js-marker-clusterer/images/m1.png",
+                width: 53,
+                height:53,
+                fontFamily:"comic sans ms",
+                textSize:15,
+                textColor:"red",
+                color: "#C04300", // non va......
+          }]
+    };
+
+const customRenderer = {
+render: function ({ count, position }, stats) {
+        // change color if this cluster has more markers than the mean cluster
+        //const color = count > Math.max(10, stats.clusters.markers.mean) ? "#ff0000" : "#0000ff";
+        const color = "#C04300";
+        // create svg url with fill color
+        const svg = window.btoa(`
+  <svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+    <circle cx="120" cy="120" opacity=".6" r="70" />
+    <circle cx="120" cy="120" opacity=".3" r="90" />
+    <circle cx="120" cy="120" opacity=".2" r="110" />
+  </svg>`);
+        // create marker using svg icon
+        return new google.maps.Marker({
+            position,
+            icon: {
+                url: `data:image/svg+xml;base64,${svg}`,
+                scaledSize: new google.maps.Size(45, 45),
+            },
+            label: {
+                text: String(count),
+                color: "rgba(255,255,255,0.9)",
+                fontSize: "12px",
+            },
+            title: `Cluster of ${count} markers`,
+            // adjust zIndex to be above other markers
+            zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count,
+        });
+    }
+  };
+
+  //new MarkerClusterer({ markers, map });
+  /* da GitHub: When adding via unpkg, the MarkerClusterer can be accessed at markerClusterer.MarkerClusterer. */
+  //var klust = new markerClusterer.MarkerClusterer({ map, markers, mcOptions }); // originale
+  //new markerClusterer.MarkerClusterer(map, markers, {imagePath: '/wp-content/themes/lovecraft-child/assets/images/markers/m-dot.svg'} );
+  new markerClusterer.MarkerClusterer({ map, markers, customRenderer });
+  /* ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||| */
+
+  /* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx */
+  /* Aggiunge il Muro di berlino e i confini */
+  const mauer = "/wp-content/themes/lovecraft-child/assets/js/berlin-wall.geojson";
+  const confine = "/wp-content/themes/lovecraft-child/assets/js/confine.geojson";
+  const deutsch = "/wp-content/themes/lovecraft-child/assets/js/3_mittel.geo.json";
+  map.data.loadGeoJson( mauer );
+  map.data.loadGeoJson( deutsch );
+  map.data.loadGeoJson( confine );
+  map.data.setStyle((feature) => {
+      return {
+        /*icon: { // custom icon
+          url: markerSet + icon,
+        },*/
+        fillColor: 'green',
+        fillOpacity: 0,
+        strokeColor: "#C04300",
+        strokeOpacity: 1,
+        strokeWeight: 2,
+      };
+    });
+  /* xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx */
+
 } // FINE function initDeutschland()
+
 
 /* Creazione url per REST */
 function urlMakerMap(lngList) {
@@ -187,9 +216,6 @@ function urlMakerMap(lngList) {
 
 /* Chiamata AJAX per Posts mappa */
 function mapAjaxCall(url) {
-  //console.log("myGeoJson in ingresso mapAjaxCall(): " + myGeoJson);
-  //console.log('Questo è url completo: ' + url);
-  console.log('mapAjaxCall(url) è partita!');
   var myData = false;
   jQuery.ajax({
     url: url,
@@ -202,25 +228,18 @@ function mapAjaxCall(url) {
     dataType: 'json',
     async: false, // altrimenti non posso ritornare mtData
     success: function (data) {
-      //console.log("data = " + data);
       var myGeoJson = {
           "type": "FeatureCollection",
           "features": []
       };
       myData = handleData( data, myGeoJson );
-      //return myGeoJson;
     },
     type: 'GET'
   });
-  console.log("myData in uscita mapAjaxCall(): " + myData);
-  console.log('mapAjaxCall(url) è terminata!');
   return myData;
 }
 
-/* Costruisce il dataSet con quello che arriva dal server lasciando fuori i record che non hanno LAT e LNG */
 function handleData(data, myGeoJson) {
-  console.log("handleData(data) è partita");
-  console.log("myGeoJson in ingresso handleData(): " + myGeoJson);
   var feat = [];
   var counter = 0;
   for (var property in data) {
@@ -229,9 +248,6 @@ function handleData(data, myGeoJson) {
     prop.type = "Feature",
     prop.properties = {};
     var obj = data[property];
-    console.log("obj = " + obj);
-    console.log("obj.meta.lat *** = " + obj.meta.lat);
-
     if ( obj.meta['lat'] != "" && obj.meta['lng'] != "" && typeof obj.meta['lat'] !== "undefined" && typeof obj.meta['lng'] !== "undefined") {
       prop.geometry.type = "Point";
       prop.geometry.coordinates = [ parseFloat(obj.meta.lng[0]), parseFloat(obj.meta.lat[0]) ];
@@ -250,25 +266,53 @@ function handleData(data, myGeoJson) {
       prop.properties.it_cf_page_num = JSON.stringify(parseInt(obj.meta.it_cf_page_num[0]));
       prop.properties.it_cf_text = obj.meta.it_cf_text[0];
       prop.properties.it_cf_keyword = obj.meta.it_cf_keyword[0];
-
       feat.push(prop);
       counter = counter + 1; // provvisorio, per contare i post filtrati
     }
   }
   myGeoJson.features = feat;
   console.log("Counter = " + counter);
-  console.log("handleData(data) è terminata");
-  console.log("Questo è myGeoJson: " + myGeoJson);
-  console.log("Questo è myGeoJson.type: " + myGeoJson.type);
-  console.log("Questo è myGeoJson.features: " + myGeoJson.features);
-  //console.log("Stringify: " + JSON.stringify(myGeoJson));
   return myGeoJson;
 }
 
-/* Seleziona la lingua che sarà mostrata nei tooltips */
+/* da modificare all'aggiunta di lingue nuove */
+/* Prepara i pezzi in lingua giusta per la infoWindow */
+function contentOK(language, json) {
+  var keyword = "";
+  var text = "";
+  if (language == "de") {
+    keyword = JSON.stringify(json.properties.de_cf_keyword);
+    text = JSON.stringify(json.properties.de_cf_text);
+  }
+  if (language == "en") {
+    keyword = JSON.stringify(json.properties.en_cf_keyword);
+    text = JSON.stringify(json.properties.en_cf_text);
+  }
+  if (language == "it") {
+    keyword = JSON.stringify(json.properties.it_cf_keyword);
+    text = JSON.stringify(json.properties.it_cf_text);
+  }
+  /* Toglie le virgolette dal testo */
+  keyword = keyword.substring(1, keyword.length-1);
+  text = text.substring(1, text.length-1);
+  return [keyword, text];
+}
+
+/* Taglia i pezzi di testo per evidenziare la keyword */
+function cutTextMap(text, key) {
+  var chunks = [text.substring(0, text.indexOf(key)),
+    text.substring(text.indexOf(key) + key.length),
+  ];
+  return chunks;
+}
+
+
+/* FUNZIONI PER LINGUE */
+
+// Mantiene il settaggio della lingua della sessione
+// altrimenti seleziona quella del browser (NON USATA)
 function setLanguageIDmap(){
-  // Mantiene il settaggio della lingua della sessione
-  // altrimenti seleziona quella del browser
+  console.log("setLanguageIDmap() PARTITA");
   if (localStorage.langID) {
     lgID = localStorage.langID;
   } else {
@@ -279,25 +323,30 @@ function setLanguageIDmap(){
   return lgID;
 }
 
-/* Taglia i pezzi delle quotes da mettere nei tooltips */
-function cutTextMap(text, key) {
-  //console.log('cutText() partita!');
-  var chunks = [text.substring(0, text.indexOf(key)),
-    text.substring(text.indexOf(key) + key.length),
-  ];
-//console.log('chunks[0] = ' + chunks[0]);
-//console.log('chunks[1] = ' + chunks[1]);
-  return chunks;
+/* Settaggio lingua */
+function setLanguageID(){
+  if (localStorage.langID) {
+    return;
+  } else {
+    lgID = navigator.language || navigator.userLanguage;
+    lgID = lgID.split('-')[0];
+    localStorage.langID = lgID;
+  }
 }
 
-/* funzione onClick su <select> di Google Maps */
+/* Click su <select> di Google Maps*/
 function changeLang(value) {
   localStorage.langID = value;
   setSelect(value);
-  location.reload();
+  location.reload(); // ricarica la pagina con la nuova lingua
 }
 
-/* Fissa la lingua giusta ovunque serve */
+/* Settaggio <select> */
+function setSelect(lgID) {
+  jQuery("option").filter(":selected").removeAttr("selected");
+  jQuery("#" + lgID).attr("selected", "selected");
+}
+
 function startMap() {
   jQuery(document).ready(function () {
     setLanguageID();
